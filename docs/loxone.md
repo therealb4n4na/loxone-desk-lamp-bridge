@@ -1,25 +1,25 @@
-# Loxone-Einbindung
+# Loxone integration
 
-## Setzen
+## Set value
 
-Virtuellen HTTP-Ausgang auf die Bridge richten:
+Point a virtual HTTP output at the bridge:
 
 ```text
 http://<DIETPI-IP>:8765/set?v=<v>
 ```
 
-`<v>` ist der Lumitech-Zahlenwert.
+`<v>` is the Lumitech numeric value.
 
-## Rückmeldung
+## Feedback
 
-Für Diagnose und optional eine Statusvisualisierung:
+For diagnostics and optional status visualization:
 
 ```text
 http://<DIETPI-IP>:8765/status
 ```
 
-Der Status enthält den tatsächlich von der Lampe gelesenen Power-, Helligkeits- und Kelvin-Wert.
+The response contains power, brightness, and Kelvin values read directly from the lamp.
 
-## Empfehlung
+## Recommendation
 
-Nicht bei jedem kleinen internen Loxone-Zyklus denselben Wert erneut senden. Nur bei einer tatsächlichen Änderung des gewünschten Lichtzustands schreiben. Das reduziert unnötige miIO-Kommunikation und macht WLAN-Probleme leichter erkennbar.
+Do not send the same value on every small internal Loxone cycle. Write only when the desired light state actually changes. This reduces unnecessary miIO traffic and makes wireless problems easier to diagnose.

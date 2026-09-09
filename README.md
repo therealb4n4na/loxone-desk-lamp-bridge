@@ -1,23 +1,23 @@
 # Loxone Xiaomi Desk Lamp Bridge
 
 <!-- project-meta -->
-> **Status:** Stable · **Current release:** `v1.0.0` · **License:** MIT · **Documentation:** Deutsch · **Issues/PRs:** Deutsch or English
+> **Status:** Stable · **Current release:** `v1.0.0` · **License:** MIT · **Documentation:** English · **Issues/PRs:** English preferred
 
-[Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Loxone-Doku](docs/loxone.md) · [Troubleshooting](docs/troubleshooting.md) · [Project collection](https://github.com/therealb4n4na/loxone-smart-home-projects)
+[Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Loxone integration](docs/loxone.md) · [Troubleshooting](docs/troubleshooting.md) · [Project collection](https://github.com/therealb4n4na/loxone-smart-home-projects)
 <!-- /project-meta -->
 
-Kleine lokale HTTP-Bridge, mit der eine Xiaomi/Yeelight-kompatible Schreibtischlampe über Loxone angesteuert werden kann. Die Bridge übersetzt einen Loxone-Lumitech-Zahlenwert in Helligkeit und Farbtemperatur und sendet die entsprechenden miIO-Befehle direkt an die Lampe.
+A small local HTTP bridge for controlling a Xiaomi/Yeelight-compatible desk lamp from Loxone. The bridge decodes a Loxone Lumitech numeric value into brightness and color temperature and sends the corresponding commands directly to the lamp through miIO.
 
-## Funktionen
+## Features
 
-- Ein/Aus
-- Helligkeit 0–100 %
-- Farbtemperatur 2500–4800 K
-- direkter Geräte-Status
-- serialisierte miIO-Zugriffe, damit parallele Befehle sich nicht überschreiben
-- Schreibzugriff nur von der freigegebenen Loxone-IP
+- power on/off
+- brightness 0–100 %
+- color temperature 2500–4800 K
+- direct device status feedback
+- serialized miIO access so parallel commands do not overlap
+- write access restricted to the configured Loxone/controller IP
 
-## Architektur
+## Architecture
 
 ```text
 Loxone
@@ -26,99 +26,99 @@ Loxone
 bridge.py :8765
   │ miIO
   ▼
-Desk Lamp im lokalen WLAN
+Desk lamp on the local Wi-Fi network
 ```
 
-## Lumitech-Codierung
+## Lumitech encoding
 
-Die Bridge erwartet:
+The bridge expects:
 
 ```text
-0 -> AUS
-200000000 + (Helligkeit * 10000) + Kelvin -> EIN
+0 -> OFF
+200000000 + (brightness * 10000) + Kelvin -> ON
 ```
 
-Beispiel für 50 % bei 3000 K:
+Example for 50 % brightness at 3000 K:
 
 ```text
 200503000
 ```
 
-Die Farbtemperatur wird auf den unterstützten Bereich 2500–4800 K begrenzt.
+Color temperature is clamped to the supported range of 2500–4800 K.
 
-## Voraussetzungen
+## Requirements
 
 - Linux / DietPi / Debian
 - Python 3
 - `python-miio`
-- lokale IP-Adresse der Lampe
-- miIO-Token der eigenen Lampe
+- local IP address of the lamp
+- miIO token for your own lamp
 
-Installation des Python-Pakets beispielsweise in einer virtuellen Umgebung:
+Example virtual environment:
 
 ```bash
 python3 -m venv venv
 ./venv/bin/pip install python-miio
 ```
 
-## Konfiguration
+## Configuration
 
-Die produktiven Werte werden über Umgebungsvariablen geladen. Vorlage:
+Production values are loaded through environment variables. Template:
 
 [`lamp.env.example`](lamp.env.example)
 
-Die echte Datei heißt lokal beispielsweise `lamp.env` und wird durch `.gitignore` ausgeschlossen.
+Create a local file such as `lamp.env`; it is excluded by `.gitignore`.
 
-Relevante Werte:
+Relevant values:
 
 ```text
-LAMP_IP           IP-Adresse der Lampe
-LAMP_TOKEN        lokaler miIO-Token
-PORT              HTTP-Port der Bridge (Standard 8765)
-WRITE_CLIENT_IP   einzige entfernte IP mit Schreibrecht, typischerweise Loxone
+LAMP_IP           local IP address of the lamp
+LAMP_TOKEN        local miIO token
+PORT              HTTP port of the bridge (default 8765)
+WRITE_CLIENT_IP   only remote IP allowed to write, typically Loxone
 ```
 
-Wichtig: Ein miIO-Token ist ein Geheimnis und darf nicht in GitHub landen.
+A miIO token is a secret and must never be committed to GitHub.
 
-## HTTP-Endpunkte
+## HTTP endpoints
 
-### Lampe setzen
+### Set lamp state
 
 ```text
 GET http://<HOST>:8765/set?v=<LUMITECH_VALUE>
 ```
 
-Dieser Endpunkt ist schreibend und akzeptiert nur die freigegebene Loxone-IP sowie localhost.
+This is a write endpoint and accepts requests only from the configured controller IP and localhost.
 
-### Status lesen
+### Read status
 
 ```text
 GET http://<HOST>:8765/status
 ```
 
-Der Status wird direkt von der Lampe abgefragt. Ein laufender HTTP-Prozess bedeutet deshalb noch nicht automatisch, dass die Lampe im WLAN erreichbar ist.
+The status is read directly from the lamp. A running HTTP process therefore does not automatically mean that the lamp itself is reachable over Wi-Fi.
 
-## WLAN-Hinweis
+## Wi-Fi note
 
-miIO-Geräte reagieren empfindlich auf schlechte WLAN-Verbindungen. Wenn `/status` mehrere Sekunden benötigt oder sporadisch timeouts erzeugt, zuerst AP-Zuordnung, RSSI, Paketverlust und Latenz prüfen. Eine Bridge-Neuinstallation behebt kein schlechtes Funknetz.
+miIO devices can react poorly to unstable Wi-Fi. If `/status` takes several seconds or times out intermittently, check AP association, signal quality, packet loss, and latency first. Reinstalling the bridge will not fix a weak wireless link.
 
 ## Loxone
 
-Die eigentliche Loxone-Logik muss nur den Lumitech-Wert erzeugen und an `/set?v=...` senden.
+The Loxone side only needs to generate the Lumitech value and send it to `/set?v=...`.
 
 Details: [`docs/loxone.md`](docs/loxone.md).
 
-## Fehlersuche
+## Troubleshooting
 
-Siehe [`docs/troubleshooting.md`](docs/troubleshooting.md).
+See [`docs/troubleshooting.md`](docs/troubleshooting.md).
 
-## Sicherheit
+## Security
 
-- Token nur in lokaler Environment-Datei
-- `/set` auf die Loxone-IP begrenzt
-- `/status` bleibt für Diagnose lesbar
-- Token-Extractor und andere lokale Hilfsdaten werden nicht versioniert
+- keep the token only in a local environment file
+- restrict `/set` to the Loxone/controller IP
+- keep `/status` readable for diagnostics if desired
+- do not version token-extraction data or other local helper data
 
-## Lizenz
+## License
 
-MIT License – siehe [`LICENSE`](LICENSE).
+MIT License – see [`LICENSE`](LICENSE).

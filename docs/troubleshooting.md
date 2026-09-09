@@ -1,37 +1,37 @@
-# Fehlersuche
+# Troubleshooting
 
-## HTTP-Dienst prüfen
+## Check the HTTP service
 
 ```bash
 systemctl status desk-lamp-bridge.service
 journalctl -u desk-lamp-bridge.service -n 100 --no-pager
 ```
 
-## Lampe direkt über die Bridge testen
+## Query the lamp through the bridge
 
 ```bash
 curl -sS http://127.0.0.1:8765/status
 ```
 
-Wenn dieser Aufruf hängt oder mehrere Sekunden benötigt, ist meist die Kommunikation zur Lampe langsam.
+If this request hangs or takes several seconds, communication with the lamp is usually the slow part.
 
-## WLAN prüfen
+## Check Wi-Fi
 
 ```bash
 ping -c 10 <LAMP-IP>
 ```
 
-Auffällig sind hoher Jitter, mehrere hundert Millisekunden Latenz oder Paketverlust. Bei mehreren Access Points außerdem prüfen, ob die Lampe wirklich am räumlich passenden AP hängt.
+High jitter, latency of several hundred milliseconds, or packet loss are suspicious. With multiple access points, also verify that the lamp is associated with the physically appropriate AP.
 
-## BrokenPipeError
+## `BrokenPipeError`
 
-Kann entstehen, wenn der HTTP-Client bereits in einen Timeout gelaufen ist, während die miIO-Abfrage noch auf eine Antwort wartet. Das ist häufig ein Folgefehler einer langsamen Gerätekommunikation.
+This can occur when the HTTP client has already timed out while the miIO request is still waiting for the lamp. It is often a secondary symptom of slow device communication.
 
-## HTTP 403 bei `/set`
+## HTTP 403 on `/set`
 
-Der Client ist nicht als Schreibquelle freigegeben. Das ist beabsichtigt. `/status` kann trotzdem lesbar sein.
+The client is not configured as an allowed write source. This is intentional. `/status` may still remain readable.
 
-## Nach Änderungen
+## After changes
 
 ```bash
 python3 -m py_compile bridge.py
