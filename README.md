@@ -1,5 +1,11 @@
 # Loxone Xiaomi Desk Lamp Bridge
 
+<!-- project-meta -->
+> **Status:** Stable · **Current release:** `v1.0.0` · **License:** MIT · **Documentation:** Deutsch · **Issues/PRs:** Deutsch or English
+
+[Changelog](CHANGELOG.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Loxone-Doku](docs/loxone.md) · [Troubleshooting](docs/troubleshooting.md)
+<!-- /project-meta -->
+
 Kleine lokale HTTP-Bridge, mit der eine Xiaomi/Yeelight-kompatible Schreibtischlampe über Loxone angesteuert werden kann. Die Bridge übersetzt einen Loxone-Lumitech-Zahlenwert in Helligkeit und Farbtemperatur und sendet die entsprechenden miIO-Befehle direkt an die Lampe.
 
 ## Funktionen
