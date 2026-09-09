@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Secrets / local configuration
+lamp.env
+*.token
+*.secret
+
+# Local helper/vendor material
+token-extractor/
+
+# Runtime / logs
+*.log
+
+# Local backups / temporary files
+*.bak
+*.bak.*
+*.backup*
+*.before-*
+*.working
+*~
+.DS_Store
