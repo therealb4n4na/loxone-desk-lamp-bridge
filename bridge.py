@@ -18,6 +18,7 @@ Wichtige Endpunkte
 ------------------
 /set?v=...  -> Lampe schalten / Helligkeit / Kelvin setzen
 /status     -> power, bright und ct DIREKT von der Lampe lesen
+/health     -> schneller gecachter miIO-Reachability-Status ohne Lampen-Wartezeit
 
 Lumitech-Codierung
 ------------------
@@ -56,9 +57,11 @@ Wichtig bei Fehlern
 import os
 import json
 import threading
+import time
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 from miio import Device
+from miio.miioprotocol import MiIOProtocol
 
 IP = os.environ.get("LAMP_IP", "192.168.1.60")
 TOKEN = os.environ["LAMP_TOKEN"]
@@ -73,6 +76,62 @@ MAX_CT = 4800
 
 lamp = Device(IP, token=TOKEN)
 lock = threading.Lock()
+
+HEALTH_INTERVAL = float(os.environ.get("HEALTH_INTERVAL", "60"))
+HEALTH_PROBE_TIMEOUT = float(os.environ.get("HEALTH_PROBE_TIMEOUT", "1.5"))
+HEALTH_FAILURE_THRESHOLD = int(os.environ.get("HEALTH_FAILURE_THRESHOLD", "3"))
+
+health_lock = threading.Lock()
+health_state = {
+    "last_attempt": None,
+    "last_success": None,
+    "last_error": None,
+    "consecutive_failures": 0,
+}
+
+
+def probe_lamp_health():
+    """Fast, read-only miIO reachability probe without blocking HTTP clients."""
+    now = time.time()
+    try:
+        message = MiIOProtocol.discover(IP, timeout=HEALTH_PROBE_TIMEOUT)
+        if message is None:
+            raise TimeoutError(f"miIO discovery timeout for {IP}")
+        with health_lock:
+            health_state.update({
+                "last_attempt": now,
+                "last_success": now,
+                "last_error": None,
+                "consecutive_failures": 0,
+            })
+    except Exception as exc:
+        with health_lock:
+            health_state["last_attempt"] = now
+            health_state["last_error"] = f"{type(exc).__name__}: {exc}"
+            health_state["consecutive_failures"] += 1
+
+
+def health_snapshot():
+    with health_lock:
+        snapshot = dict(health_state)
+    now = time.time()
+    last_success = snapshot.get("last_success")
+    age_s = None if last_success is None else max(0, int(now - last_success))
+    failures = int(snapshot.get("consecutive_failures") or 0)
+    return {
+        "ok": last_success is not None and failures < HEALTH_FAILURE_THRESHOLD,
+        "device": IP,
+        "last_success_age_s": age_s,
+        "consecutive_failures": failures,
+        "failure_threshold": HEALTH_FAILURE_THRESHOLD,
+        "last_error": snapshot.get("last_error"),
+    }
+
+
+def health_loop():
+    while True:
+        probe_lamp_health()
+        time.sleep(HEALTH_INTERVAL)
 
 
 def decode_lumitech(value):
@@ -119,11 +178,17 @@ class Handler(BaseHTTPRequestHandler):
     def send_json(self, status, data):
         body = json.dumps(data).encode("utf-8")
 
-        self.send_response(status)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
+        try:
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return True
+        except (BrokenPipeError, ConnectionResetError):
+            # The client may have timed out while a slow miIO operation was
+            # still running. That is a client disconnect, not a bridge fault.
+            return False
 
     def write_allowed(self):
         return self.client_address[0] in {
@@ -162,6 +227,11 @@ class Handler(BaseHTTPRequestHandler):
                 })
                 return
 
+            if parsed.path == "/health":
+                snapshot = health_snapshot()
+                self.send_json(200 if snapshot["ok"] else 503, snapshot)
+                return
+
             if parsed.path == "/status":
                 with lock:
                     status = lamp.send(
@@ -196,6 +266,15 @@ print(f"Desk Lamp Bridge")
 print(f"Lamp: {IP}")
 print(f"HTTP Port: {PORT}")
 print(f"Color temperature: {MIN_CT}-{MAX_CT} K")
+print(
+    f"Health probe: every {HEALTH_INTERVAL:.0f}s, timeout {HEALTH_PROBE_TIMEOUT:.1f}s, "
+    f"warning after {HEALTH_FAILURE_THRESHOLD} consecutive failures"
+)
+
+# Prime the cached health state before serving requests, then refresh it in the
+# background. The HTTP /health endpoint therefore never waits on the lamp.
+probe_lamp_health()
+threading.Thread(target=health_loop, name="lamp-health", daemon=True).start()
 
 server = ThreadingHTTPServer(("0.0.0.0", PORT), Handler)
 server.serve_forever()

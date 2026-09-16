@@ -14,6 +14,7 @@ A small local HTTP bridge for controlling a Xiaomi/Yeelight-compatible desk lamp
 - brightness 0–100 %
 - color temperature 2500–4800 K
 - direct device status feedback
+- non-blocking cached `/health` endpoint with transient miIO failure tolerance
 - serialized miIO access so parallel commands do not overlap
 - write access restricted to the configured Loxone/controller IP
 
@@ -72,10 +73,13 @@ Create a local file such as `lamp.env`; it is excluded by `.gitignore`.
 Relevant values:
 
 ```text
-LAMP_IP           local IP address of the lamp
-LAMP_TOKEN        local miIO token
-PORT              HTTP port of the bridge (default 8765)
-WRITE_CLIENT_IP   only remote IP allowed to write, typically Loxone
+LAMP_IP                  local IP address of the lamp
+LAMP_TOKEN               local miIO token
+PORT                     HTTP port of the bridge (default 8765)
+WRITE_CLIENT_IP          only remote IP allowed to write, typically Loxone
+HEALTH_INTERVAL          cached reachability probe interval (default 60 s)
+HEALTH_PROBE_TIMEOUT     probe timeout (default 1.5 s)
+HEALTH_FAILURE_THRESHOLD consecutive failed probes before health degrades (default 3)
 ```
 
 A miIO token is a secret and must never be committed to GitHub.
@@ -97,6 +101,14 @@ GET http://<HOST>:8765/status
 ```
 
 The status is read directly from the lamp. A running HTTP process therefore does not automatically mean that the lamp itself is reachable over Wi-Fi.
+
+### Health
+
+```text
+GET http://<HOST>:8765/health
+```
+
+`/health` returns a cached miIO reachability result and never waits on a live lamp request. A background probe runs every 60 seconds by default; one or two consecutive failures are treated as transient, while the third consecutive failure degrades health. This keeps monitoring responsive without hiding sustained Wi-Fi/miIO outages.
 
 ## Wi-Fi note
 
