@@ -1,5 +1,10 @@
 # Loxone Xiaomi Desk Lamp Bridge
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+![Python 3](https://img.shields.io/badge/Python-3.x-blue.svg)
+![Platform](https://img.shields.io/badge/Linux-DietPi%20%2F%20Debian-informational.svg)
+![Protocol](https://img.shields.io/badge/Protocol-local%20miIO-success.svg)
+
 <!-- project-meta -->
 > **Status:** Stable · **Current release:** `v1.0.0` · **License:** MIT · **Documentation:** English · **Issues/PRs:** English preferred
 
@@ -8,7 +13,7 @@
 
 A small local HTTP bridge for controlling a Xiaomi/Yeelight-compatible desk lamp from Loxone. The bridge decodes a Loxone Lumitech numeric value into brightness and color temperature and sends the corresponding commands directly to the lamp through miIO.
 
-## Features
+## What this project gives you
 
 - power on/off
 - brightness 0–100 %
@@ -46,6 +51,12 @@ Example for 50 % brightness at 3000 K:
 ```
 
 Color temperature is clamped to the supported range of 2500–4800 K.
+
+## Tested hardware
+
+This bridge is developed and operated with a **Xiaomi Desk Lamp Pro** using local miIO control.
+
+The tested lamp supports power control, brightness and a color-temperature range of 2500–4800 K. Other Xiaomi/Yeelight-compatible lamps may use different commands or ranges and should not be assumed compatible without verification.
 
 ## Requirements
 
